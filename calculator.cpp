@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <sstream>
+#include <regex>
 
 #include "calculator.h"
 
@@ -11,10 +12,35 @@
 using std::cout;
 using std::endl;
 
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
+class IsChar
+{
+public:
+	IsChar( const std::string& str) : mStr(str)	{}
+	bool operator ()( const char& c)	{ return  (find( mStr.begin(), mStr.end(), c) != mStr.end() ); }
+
+private:
+	std::string mStr;
+};
+
+void RemoveChar( std::string& str, const std::string& schar)
+{
+	IsChar ischar( schar);
+	str.erase( remove_if( str.begin(), str.end(), ischar ), str.end() ); // TODO :: use lambda instead of ischar
+}
 
 
+// removes all blank chars from the 'str'
+inline void RemoveBlanks( std::string& str)
+{
+	RemoveChar( str, std::string(" \t\n\r") );
+}
+ 
+///////////////////////////////////////////////////////////////////////////////////////////////////
 
-inline int OperPriority( EOperator opr)
+
+int OperPriority( EOperator opr)
 {
 	switch (opr)
 	{
@@ -35,6 +61,13 @@ inline int OperPriority( EOperator opr)
 	case EOperator::RSHFT:
 		return 30;
 
+	case EOperator::AND:
+	case EOperator::OR:
+	case EOperator::XOR:
+	case EOperator::NAND:
+	case EOperator::NOR:
+		return 5;
+
 	case EOperator::EVAL:
 		return 0;
 	};
@@ -42,10 +75,25 @@ inline int OperPriority( EOperator opr)
 	return 0;
 }
 
-inline std::string OperToString( EOperator opr)
+std::string OperToString( EOperator opr)
 {
 	switch (opr)
 	{
+	case EOperator::NOR:
+		return std::string( " !|| " );
+
+	case EOperator::NAND:
+		return std::string( " !&& " );
+
+	case EOperator::XOR:
+		return std::string( " ^^ " );
+
+	case EOperator::OR:
+		return std::string( " || " );
+
+	case EOperator::AND:
+		return std::string( " && " );
+
 	case EOperator::PLUS:
 		return std::string( " + " );
 
@@ -74,29 +122,68 @@ inline std::string OperToString( EOperator opr)
 	return "";
 }
 
-inline EOperator CharToOper( char c)
+EOperator StringToOper( std::string str)
 {
 	EOperator opr;
 
-	switch ( c)
+	if ( str == "+")
 	{
-	case '+':
 		opr = EOperator::PLUS;
-		break;
-	case '-':
+	}
+	else if ( str == "-")
+	{
 		opr = EOperator::MINUS;
-		break;
-	case '*':
+	}
+	else if ( str == "*")
+	{
 		opr = EOperator::MULT;
-		break;
-	case '/':
+	}
+	else if ( str == "/")
+	{
 		opr = EOperator::DIV;
-		break;
-	case '=':
+	}
+	else if ( str == "%")
+	{
+		opr = EOperator::MODULO;
+	}
+	else if ( str == ">>")
+	{
+		opr = EOperator::RSHFT;
+	}
+	else if ( str == "<<")
+	{
+		opr = EOperator::LSHFT;
+	}	
+	else if ( str == "=")
+	{
 		opr = EOperator::EVAL;
-		break;
-
-	default:
+	}
+	else if ( str == "&&")
+	{
+		opr = EOperator::AND;
+	}
+	else if ( str == "||")
+	{
+		opr = EOperator::OR;
+	}
+	else if ( str == "^^")
+	{
+		opr = EOperator::XOR;
+	}
+	else if ( str == "!&&")
+	{
+		opr = EOperator::NAND;
+	}
+	else if ( str == "!||")
+	{
+		opr = EOperator::NOR;
+	}
+	else if ( str == "=")
+	{
+		opr = EOperator::EVAL;
+	}
+	else
+	{
 		opr = EOperator::UNKNOWN;
 	}
 
@@ -104,49 +191,11 @@ inline EOperator CharToOper( char c)
 }
 
 
-class IsChar
-{
-public:
-	IsChar( const std::string& str) : mStr(str)	{}
-	bool operator ()( const char& c)	{ return  (find( mStr.begin(), mStr.end(), c) != mStr.end() ); }
 
-private:
-	std::string mStr;
-};
-
-inline void RemoveChar( std::string& str, const std::string& schar)
-{
-	IsChar ischar( schar);
-	str.erase( remove_if( str.begin(), str.end(), ischar ), str.end() ); // TODO :: use lambda instead of ischar
-}
-
-
-// removes all blank chars from the 'str'
-inline void RemoveBlanks( std::string& str)
-{
-	RemoveChar( str, std::string(" \t\n\r") );
-}
- 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-inline std::string ConvertTo( const std::string& arg, EBase ibase, EBase obase)
-{
-    mpz_t q;
-    mpz_init( q);
-    mpz_set_str( q, arg.c_str(), (int)ibase);
-
-	size_t n = mpz_sizeinbase(q, (int)obase) + 2;
-	char *ptab = new char[n];
-	mpz_get_str( ptab, -(int)obase, q);
-	std::string rstr( ptab);
-
-	delete [] ptab;
-    mpz_clear( q);
-
-	return rstr;
-}
-
-std::string	EvaluateOne( const std::string& a, EOperator opr, EBase base=EBase::HEX)
+//std::string	EvaluateOne( const std::string& a, EOperator opr, EBase base=EBase::HEX)
+std::string	EvaluateOne( const std::string& a, EOperator opr, EBase base)
 {
 	mpz_t ta, tc;
 	mpz_init( ta);
@@ -185,22 +234,6 @@ std::string	EvaluateOne( const std::string& a, EOperator opr, EBase base=EBase::
 			break;
 		}
 
-	//case EOperator::COMPL:
-	//	{
-	//		mpz_setbit( tc, 31);
-	//		//mpz_set( tc, ta);
-	//		size_t bitc = mpz_sizeinbase(ta, 2);
-	//		for ( mp_bitcnt_t i=0; i<bitc; ++i)
-	//		{
-	//			int bit = mpz_tstbit( ta, i);
-	//			if ( bit == 0 )
-	//				mpz_setbit( tc, i);
-	//			else
-	//				mpz_clrbit( tc, i);
-	//		}
-	//		//mpz_com( tc, ta);
-	//		break;
-	//	}
 	};
 
 	size_t n = mpz_sizeinbase( tc, (int)base ) + 2;
@@ -259,6 +292,34 @@ inline std::string EvaluateTwo( const std::string& al, const std::string& ar, EO
 			mpz_tdiv_q_2exp( tc , ta , shift);
 			break;
 		}
+
+	case EOperator::AND:
+		{
+			mpz_and( tc, ta, tb);
+			break;
+		}
+	case EOperator::NAND:
+		{
+			mpz_and( tc, ta, tb);
+			mpz_com( tc, tc);
+			break;
+		}
+	case EOperator::OR:
+		{
+			mpz_ior( tc, ta, tb);
+			break;
+		}
+	case EOperator::XOR:
+		{
+			mpz_xor( tc, ta, tb);
+			break;
+		}
+	case EOperator::NOR:
+		{
+			mpz_ior( tc, ta, tb);
+			mpz_com( tc, tc);
+			break;
+		}
 	};
 
 	
@@ -288,115 +349,174 @@ void Expression::Reset()
 	mstack.resize(1);
 }
 
-int	Expression::Create( std::string sxp, int idex, int pos)
+
+void Expression::Find_ArgOps( std::string& sexp, int idex )
 {
-	RemoveBlanks( sxp);
+	std::regex rex( "^([\\+\\-]?[0-9A-F]+|#[0-9]+)(\\+|\\-|/|\\*|<<|>>|=|&&|\\|\\||!&&|!\\|\\||\\^\\^|\\%)" );
+	std::smatch rex_match;
 
-	Argument	curarg;
-	EOperator	opr = EOperator::UNKNOWN;
-	std::string sarg = "";
-
-	int mode = 10;
-	bool bstart = true;
-	std::string sign = "";
-
-	while ( pos < sxp.length() )
+	while ( std::regex_search( sexp, rex_match, rex) )
 	{
-		char c = sxp[pos];
-
-		if ( c == ')' )
+		//cout << rex_match[1] << " :::: "  << rex_match[2] << endl;
+		std::string sval = rex_match[1];
+		
+		Argument arg;
+		if (sval.front() == '#')
 		{
-			if ( sarg != "" )
-			{
-				sarg = sign + sarg;
-				curarg.mId = -1;
-				curarg.mValue = sarg;
-			}
-
-			mstack[idex].push_back( ArgOp( curarg, EOperator::EVAL) );
-			return pos+1;
+			sval.erase( sval.begin() );
+			int id = std::stoi( sval);
+			arg = Argument( id);
+		}
+		else
+		{
+			arg = Argument( sval);
 		}
 
-		if ( mode == 10) // argument
-		{
-			if ( bstart)
-			{
-				if ( c == '-' )
-				{
-					sarg = "-";
-					++pos;
-				}
-				bstart = false;
-			}
-			else
-			//if ( c>='0' && c<='9' )
-			if ( ( c>='0' && c<='9' ) || (c>='A' && c<='F') )
-			{
-				//barg = false;
-				sarg += c;
-				++pos;
-			}
-			else
-			if  ( c == '(' )
-			{
-				curarg.mId = static_cast<int>( mstack.size() );
-				curarg.mValue = "";
-				mstack.resize( mstack.size() + 1);
+		mstack[idex].push_back( ArgOp( arg, StringToOper( rex_match[2]) ) );
 
-				pos = Create( sxp, curarg.mId, pos+1);
-				
-				sarg = "";
-				sign = "";
-				mode = 11;
-			}
-			else
-			{
-				sarg = sign + sarg;
-				curarg.mId = -1;
-				curarg.mValue = sarg;
-
-				sarg = "";
-				sign = "";
-				mode = 11;
-			}
-
-			continue;
-		}
-		else if ( mode == 11) // operator
-		{
-			opr = CharToOper( c);
-
-			if ( opr != EOperator::UNKNOWN)
-			{
-				if ( curarg.IsValid() )
-				{
-					mstack[idex].push_back( ArgOp( curarg, opr) );
-					opr = EOperator::UNKNOWN;
-					mode = 10;
-					bstart = true;
-				}
-			}
-		}
-
-		++pos;
+		sexp.erase( rex_match[0].first, rex_match[0].second);
+		//cout << sexp << endl;
 	}
-
-	//if ( sarg != "" )
-	//{
-	//	sarg = sign + sarg;
-	//	curarg.mValue = sarg;
-	//}
-
-	//if ( opr == EOperator::UNKNOWN && curarg.IsValid() )
-	//{
-	//	mstack[idex].push_back( ArgOp( curarg, EOperator::EVAL) );
-	//}
-
-	return pos;
 }
+
+void Expression::Find_SubExpr( std::string& sexp, int idex )
+{
+	std::regex rex( "\\(([^\\(\\)]+)\\)" );
+
+	std::smatch rex_match;
+
+	while ( std::regex_search( sexp, rex_match, rex) )
+	{
+		//cout << rex_match[1] << endl;
+
+		size_t id = mstack.size();
+		mstack.resize( id+1 );
+
+		std::string newsexp = rex_match[1];
+		newsexp += "=";
+		Create( newsexp, id);
+
+		std::string sid = std::string("#") + std::to_string(id);		// temp subexpr ref "#id"
+		sexp.replace( rex_match[0].first, rex_match[0].second, sid );
+		
+		//cout << sexp << endl;
+	}
+}
+
+
+int	Expression::Create( std::string sexp, int idex)
+{
+	//Reset();
+	RemoveBlanks( sexp);
+
+	Find_SubExpr( sexp, idex);
+	Find_ArgOps( sexp, idex);
+
+	return 0;
+}
+
+
+//int	Expression::Create_Old( std::string sxp, int idex, int pos)
+//{
+//	RemoveBlanks( sxp);
+//
+//	Argument	curarg;
+//	EOperator	opr = EOperator::UNKNOWN;
+//	std::string sarg = "";
+//
+//	int mode = 10;
+//	bool bstart = true;
+//	std::string sign = "";
+//
+//	while ( pos < static_cast<int>(sxp.length()) )
+//	{
+//		char c = sxp[pos];
+//
+//		if ( c == ')' )
+//		{
+//			if ( sarg != "" )
+//			{
+//				sarg = sign + sarg;
+//				curarg.mId = -1;
+//				curarg.mValue = sarg;
+//			}
+//
+//			mstack[idex].push_back( ArgOp( curarg, EOperator::EVAL) );
+//			return pos+1;
+//		}
+//
+//		if ( mode == 10) // argument
+//		{
+//			if ( bstart)
+//			{
+//				if ( c == '-' )
+//				{
+//					sarg = "-";
+//					++pos;
+//				}
+//				bstart = false;
+//			}
+//			else
+//			//if ( c>='0' && c<='9' )
+//			if ( ( c>='0' && c<='9' ) || (c>='A' && c<='F') )
+//			{
+//				//barg = false;
+//				sarg += c;
+//				++pos;
+//			}
+//			else
+//			if  ( c == '(' )
+//			{
+//				curarg.mId = static_cast<int>( mstack.size() );
+//				curarg.mValue = "";
+//				mstack.resize( mstack.size() + 1);
+//
+//				pos = Create_Old( sxp, curarg.mId, pos+1);
+//				
+//				sarg = "";
+//				sign = "";
+//				mode = 11;
+//			}
+//			else
+//			{
+//				sarg = sign + sarg;
+//				curarg.mId = -1;
+//				curarg.mValue = sarg;
+//
+//				sarg = "";
+//				sign = "";
+//				mode = 11;
+//			}
+//
+//			continue;
+//		}
+//		else if ( mode == 11) // operator
+//		{
+//			opr = CharToOper( c);
+//
+//			if ( opr != EOperator::UNKNOWN)
+//			{
+//				if ( curarg.IsValid() )
+//				{
+//					mstack[idex].push_back( ArgOp( curarg, opr) );
+//					opr = EOperator::UNKNOWN;
+//					mode = 10;
+//					bstart = true;
+//				}
+//			}
+//		}
+//
+//		++pos;
+//	}
+//
+//	return pos;
+//}
 
 std::string	Expression::Eval(int idex)
 {
+	if ( mstack[0].empty() )
+		return "";
+
 	do
 	{
 		for ( auto itr=mstack[idex].begin(); (itr+1)!=mstack[idex].end(); )
@@ -458,7 +578,8 @@ std::string Expression::DumpExpr(int idex) const
 		else
 			str += e.first.mValue;
 
-		str += OperToString( e.second.op);
+		if ( e.second.op != EOperator::EVAL )
+			str += OperToString( e.second.op);
 	}
 
 	return str;
@@ -474,27 +595,7 @@ void Expression::Dump(int idex) const
 		else
 			cout << e.first.mValue;
 
-		char cop = '!';
-		switch ( e.second.op)
-		{
-		case EOperator::PLUS:
-			cop = '+';
-			break;
-		case EOperator::MINUS:
-			cop = '-';
-			break;
-		case EOperator::MULT:
-			cop = '*';
-			break;
-		case EOperator::DIV:
-			cop = '/';
-			break;
-		case EOperator::EVAL:
-			cop = '=';
-			break;
-		}
-
-		cout << cop;
+		cout << OperToString( e.second.op);
 	}
 	cout << ")";
 }
@@ -503,56 +604,6 @@ void Expression::Dump(int idex) const
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-
-void	Calc::pushArgOper( const QString& arg , EOperator opr, EBase base)
-{
-	if (mbend)
-	{
-		mstr = "";
-		mbend = false;
-	}
-
-	mstr += ConvertTo( std::string(arg.toLocal8Bit().constData()), base, mbase ) + OperToString( opr);
-}
-
-void	Calc::StartSubExpr()
-{
-	mstr += std::string("(");
-}
-
-void	Calc::FinishSubExpr()
-{
-	mstr += std::string(")");
-}
-
-QString	Calc::getExpresion( EBase base) const	
-{ 
-	Expression expr;
-	expr.Create(mstr);
-	std::string str = expr.ExprToString( mbase, base);
-	return QString( str.c_str() ); 
-}
-
-
-
-QString	Calc::EvaluateInPlace( const QString& a, EOperator opr, EBase base)
-{
-	std::string str = EvaluateOne( std::string(a.toLocal8Bit().constData()), opr, base);
-	return QString( str.c_str() );
-}
-
-QString	Calc::Evaluate()			
-{
-	mExpr.Reset();
-	mExpr.Create( mstr);
-	mbend = true;
-	//mstr = "";
-
-	QString res( mExpr.Eval().c_str() );
-	//ConvertTo( res, mbase, base );
-	return res;
-}
-
 
 //
 //int main()

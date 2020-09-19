@@ -5,7 +5,6 @@
 #include <string>
 #include <vector>
 
-#include <QString>
 #include "mini-gmp.h"
 
 enum class EBase
@@ -43,23 +42,34 @@ enum class EOperator
 	EVAL,
 };
 
-inline QString mpzToQString( const mpz_t& q, EBase base)
+void RemoveChar( std::string& str, const std::string& schar);
+
+int			OperPriority( EOperator opr);
+
+std::string OperToString( EOperator opr);
+
+
+
+std::string	EvaluateOne( const std::string& a, EOperator opr, EBase base=EBase::HEX);
+
+
+inline std::string mpzToString( const mpz_t& q, EBase base)
 {
 	size_t n = mpz_sizeinbase(q, (int)base) + 2;
 	char *ptab = new char[n];
 	mpz_get_str( ptab, -(int)base, q);
-	QString rstr( ptab);
+	std::string rstr( ptab);
 
 	delete [] ptab;
 
 	return rstr;
 }
 
-inline bool TestSize( const QString& arg, size_t size, EBase base)
+inline bool TestSize( const std::string& arg, size_t size, EBase base)
 {
     mpz_t q;
     mpz_init( q);
-    mpz_set_str( q, arg.toLocal8Bit().constData(), (int)base);
+    mpz_set_str( q, arg.c_str(), (int)base);
 
 	if ( mpz_sizeinbase(q,2) > size)
 		return false;
@@ -67,26 +77,26 @@ inline bool TestSize( const QString& arg, size_t size, EBase base)
 	return true;
 }
 
-inline QString ConvertTo( const QString& arg, EBase ibase, EBase obase)
+inline std::string ConvertTo( const std::string& arg, EBase ibase, EBase obase)
 {
     mpz_t q;
     mpz_init( q);
-    mpz_set_str( q,  arg.toLocal8Bit().constData(), (int)ibase);
-	QString rstr = mpzToQString( q, obase);
+    mpz_set_str( q,  arg.c_str(), (int)ibase);
+	std::string rstr = mpzToString( q, obase);
 	mpz_clear( q);
 
 	return rstr;
 }
 
 
-inline mp_bitcnt_t ToUnsigned( QString& rstr,  const QString& arg, EBase base)
+inline mp_bitcnt_t ToUnsigned( std::string& rstr,  const std::string& arg, EBase base)
 {
     mpz_t q, r;
 	mpz_t mask;
 	mpz_init( mask);
     mpz_init( q);
     mpz_init( r);
-    mpz_set_str( q,  arg.toLocal8Bit().constData(), (int)base);
+    mpz_set_str( q,  arg.c_str(), (int)base);
 
 	size_t bitq = mpz_sizeinbase(q, 2);
 	mp_bitcnt_t sizebit = static_cast<mp_bitcnt_t>( (bitq / 32 + 1) * 32 );
@@ -101,12 +111,12 @@ inline mp_bitcnt_t ToUnsigned( QString& rstr,  const QString& arg, EBase base)
 		mpz_add_ui( q, r, 1);
 		
 
-		rstr = mpzToQString( q, base);
+		rstr = mpzToString( q, base);
 	}
 	else
 	{
 		//mpz_setbit( q, sizebit);
-		rstr = mpzToQString( q, base);
+		rstr = mpzToString( q, base);
 		//rstr.remove(0, 1); 
 	}
 
@@ -136,8 +146,9 @@ public:
 	Argument( const std::string& a) : mId(-1), mValue(a)	{}
 
 	bool		IsExpr() const	{ return (mId > 0 ); }
-	bool		IsValid() const	{ return (mId > 0 || mValue != ""); }
-
+	//bool		IsExpr() const	{ return (mValue.front == '#'); }
+	bool		IsValid() const	{ return (mValue != ""); }
+	
 public:
 	int	mId;
 	std::string	mValue;
@@ -153,7 +164,7 @@ public:
 
 	Expression()		{ mstack.resize(1); }
 
-	int		Create( std::string sxp, int idex = 0, int pos=0);
+	int		Create( std::string sxp, int idex = 0);
 	void	Reset();
 
 	std::string	Eval(int idex=0);
@@ -164,45 +175,15 @@ public:
 
 private:
 	//void CloneStack();
+	//int		Create_Old( std::string sxp, int idex = 0, int pos=0);
+
+	void	Find_ArgOps( std::string& sexp, int idex );
+	void	Find_SubExpr( std::string& sexp, int idex );
 
 private:
 	std::vector< std::vector<ArgOp> >	mstack;
 };
 
 
-
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-class Calc
-{
-public:
-	Calc() : mbase(EBase::HEX), mstr(""), mbend(false)		{}
-
-	void		reset()							{ mExpr.Reset(); }
-    EBase       getBase() const					{ return mbase; }
-
-	QString		getExpresion( EBase base) const;
-
-	void	pushArgOper( const QString& arg , EOperator opr, EBase base);
-	//void	pushOperator( const QString& arg);
-
-
-	void	StartSubExpr();
-	void	FinishSubExpr();
-
-	QString	Evaluate();
-	QString	EvaluateInPlace( const QString& a, EOperator opr, EBase base);
-
-	//QString	EvaluateSingle( const QString& a, EOperator opr, const QString& b );
-
-private:
-	EBase			mbase;
-
-	bool			mbend;
-	std::string		mstr;
-
-	Expression		mExpr;
-
-};
 
 #endif // __CALCULATOR_H__

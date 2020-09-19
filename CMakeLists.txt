@@ -20,23 +20,24 @@ set( SOURCES
 	main.cpp 
 	display.cpp 
 	calculator.cpp
-	calculator_form.cpp
+	qcalc.cpp
+	qcalcwidget.cpp
 	multidisplay.cpp
 	mini-gmp.c
-	#mini-mpq.c
 ) 
 	
 set( HEADERS 
 	display.h 
 	calculator.h
-	calculator_form.h
+	qcalc.h
+	qcalcwidget.h
 	multidisplay.h
 	mini-gmp.h
-	#mini-mpq.h  
 )
 
 set(UI 
 	calculator_form.ui
+	display_form.ui
 )
 	
 set ( RESOURCES
@@ -63,10 +64,10 @@ INCLUDE_DIRECTORIES(
 )
 
 IF ( WIN32 )
-	add_executable(qcalc WIN32 ${SOURCES} ${HEADERS} ${UI})
-	target_link_libraries(qcalc Qt5::Widgets)
+	add_executable(gmpcalc WIN32 ${SOURCES} ${HEADERS} ${UI})
+	target_link_libraries(gmpcalc Qt5::Widgets)
 ELSE ( WIN32 )
-	add_executable(qcalc ${SOURCES} ${HEADERS} ${UI})
-	target_link_libraries(qcalc Qt5::Widgets)
+	add_executable(gmpcalc ${SOURCES} ${HEADERS} ${UI})
+	target_link_libraries(gmpcalc Qt5::Widgets)
 ENDIF ( WIN32 )
 

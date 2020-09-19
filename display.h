@@ -14,25 +14,34 @@ class Display : public QWidget
 public:
     explicit Display(QWidget *parent = nullptr);
 
-	const QString&	getCurArg() const	    { return curArgument; }
-    EBase           getBase() const         { return calcBase; }
+	const std::string&	getCurArg() const	    { return curArgument; }
+    EBase               getBase() const         { return calcBase; }
 
-    void    setMainValue( const QString& res)
+    void    setMainValue( const std::string& res)
     {
         curArgument = res;
         update();
     }
 
-    void    setExpresion( const QString& res)
+    void    setExpresion( const std::string& str)
     {
-        curExpr = res;
+        curExpr = str;
         update();
     }
 
-    void    reset()                 { curArgument = curExpr = ""; update(); }
+    void    setStatusLabel( const std::string& str)
+    {
+        ui.labelStatus->setText( QString( str.c_str() ) );
+    }
+
+    void    reset()                 { curArgument = "0"; curExpr = ""; update(); }
+    void    update();
+
     void    inputDigit( char c);
-    void    startCurArg()           { bStart = true; }
-    void    endCurArg();
+    void    startCurArg()           { bStart = true; bEnd = false; }
+    void    endCurArg()             { bEnd = true; }
+
+    bool    isEndCurArg() const    { return bEnd; }
 
 signals:
     void baseChanged(EBase base);
@@ -41,9 +50,9 @@ private slots:
     void    on_asUnsigned( bool b);
 
 private:
-    QString convertArgToDisplay( const QString& arg, EBase base);
+    QString    convertArgToDisplay( const std::string& arg, EBase base);
+    //QString convertArgToDisplay( const QString& arg, EBase base);
     void    setBase( EBase base, bool check);
-    void    update();
 
 private:
     Ui::DisplayForm ui;
@@ -51,13 +60,15 @@ private:
     QTextCharFormat fmtDefault;
 
     bool    bStart;
+    bool    bEnd;
     EBase   calcBase;
 
     bool    bAsUnsigned;
     size_t  curSize;
     size_t  argSizeLimit;   //??????????????
-    QString	curArgument;
-    QString curExpr;
+
+    std::string	curArgument;
+    std::string curExpr;
 };
 
 #endif // __DISPLAY_H__

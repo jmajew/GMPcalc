@@ -4,16 +4,17 @@
 #include "display.h"
 
 
-void ArgString_Separ( QString& arg, size_t count, char separ)
+void ArgString_Separ( std::string& arg, size_t count, char separ)
 {
 	int64_t insertPosition = arg.length() - count;
     int64_t minpos = 0;
-    if ( arg.startsWith('-') || arg.startsWith('+') )
-        minpos = 1;
+    if ( arg.length() > 0 )
+        if ( arg.front() == '-' || arg.back() == '+' )
+            minpos = 1;
 
 	while (insertPosition > minpos) 
 	{
-		arg.insert( insertPosition, QString(separ));
+        arg.insert( insertPosition, std::string({separ}) );
 		insertPosition -= count;
 	}
 }
@@ -40,9 +41,12 @@ Display::Display(QWidget *parent) : QWidget(parent)
     ui.radioButton_Dec->setChecked(true);
     calcBase = EBase::DEC;
     bStart = true;
+    bEnd = false;
+
     curExpr = "";
-	curArgument = "";
-    ui.textEdit_Display->setText( curArgument);
+	curArgument = "0";
+
+    ui.textEdit_Display->setText( QString(curArgument.c_str()) );
 
 
     QFont font;
@@ -64,9 +68,9 @@ void    Display::on_asUnsigned( bool b)
 
 }
 
-QString    Display::convertArgToDisplay( const QString& arg, EBase base)
+QString    Display::convertArgToDisplay( const std::string& arg, EBase base)
 {
-    QString rstr = arg;
+    std::string rstr = arg;
     switch ( base)
     {
     case EBase::BIN:
@@ -79,7 +83,7 @@ QString    Display::convertArgToDisplay( const QString& arg, EBase base)
         break;
     };
 
-    return rstr;
+    return QString( rstr.c_str());
 }
 
 void    Display::setBase( EBase base, bool check)
@@ -101,7 +105,7 @@ void    Display::update()
     ui.textEdit_Display->setAlignment( Qt::AlignRight);
     //ui.textEdit_Display->setText( convertArgToDisplay( curArgument, calcBase) );
 
-    ui.textEdit_Display->setText( curExpr );
+    ui.textEdit_Display->setText( QString(curExpr.c_str()) );
     ui.textEdit_Display->append( "");
 
     ui.textEdit_Display->setFontPointSize(18);
@@ -109,8 +113,8 @@ void    Display::update()
 
     if ( bAsUnsigned)
     {
-        QString qstr; 
-        curSize = ToUnsigned(qstr, curArgument, calcBase);
+        std::string qstr; 
+        curSize = ToUnsigned( qstr, curArgument, calcBase);
         ui.textEdit_Display->append( convertArgToDisplay( qstr, calcBase));
         ui.labelSize->setText(QString(" ") + QString::number(curSize) + QString(" B") );
 
@@ -125,9 +129,9 @@ void    Display::update()
     cur.setCharFormat( fmtDefault);
     ui.textEdit_Display->setTextCursor( cur);
 
-    QString sarg_bin = ConvertTo( curArgument, calcBase, EBase::BIN);
-    QString sarg_dec = ConvertTo( curArgument, calcBase, EBase::DEC);
-    QString sarg_hex = ConvertTo( curArgument, calcBase, EBase::HEX);
+    std::string sarg_bin = ConvertTo( curArgument, calcBase, EBase::BIN);
+    std::string sarg_dec = ConvertTo( curArgument, calcBase, EBase::DEC);
+    std::string sarg_hex = ConvertTo( curArgument, calcBase, EBase::HEX);
 
     ui.lineEdit_DispBin->setText( convertArgToDisplay( sarg_bin, EBase::BIN) );
     ui.lineEdit_DispDec->setText( convertArgToDisplay( sarg_dec, EBase::DEC) );
@@ -138,7 +142,7 @@ void    Display::update()
 
 void    Display::inputDigit( char c)
 {
-    QString sarg;
+    std::string sarg;
     if( bStart)
     {
         sarg = "";
@@ -151,16 +155,17 @@ void    Display::inputDigit( char c)
 
 	//sarg = sarg + QString( c);
 
-    if ( argSizeLimit > 0 )
-    {
-        if ( TestSize( sarg + QString( c), argSizeLimit, calcBase ) )
-            sarg += c;
-    }
-    else
+    //if ( argSizeLimit > 0 )
+    //{
+    //    if ( TestSize( sarg + c, argSizeLimit, calcBase ) )
+    //        sarg += c;
+    //}
+    //else
     {
         sarg += c;
     }
 
+    //curExpr += c;
     curArgument = ConvertTo( sarg, calcBase, calcBase);
     update();
 }
