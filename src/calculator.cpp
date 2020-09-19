@@ -117,6 +117,15 @@ std::string OperToString( EOperator opr)
 	
 	case EOperator::EVAL:
 		return std::string( " = " );
+
+	case EOperator::SQR:
+		return std::string( "sqr" );
+
+	case EOperator::ROOT:
+		return std::string( "root" );
+
+	case EOperator::FACTOR:
+		return std::string( "fact" );
 	};
 
 	return "";
@@ -191,6 +200,82 @@ EOperator StringToOper( std::string str)
 }
 
 
+inline std::string mpzToString( const mpz_t& q, EBase base)
+{
+	size_t n = mpz_sizeinbase(q, (int)base) + 2;
+	char *ptab = new char[n];
+	mpz_get_str( ptab, -(int)base, q);
+	std::string rstr( ptab);
+
+	delete [] ptab;
+
+	return rstr;
+}
+
+ bool TestSize( const std::string& arg, size_t size, EBase base)
+{
+    mpz_t q;
+    mpz_init( q);
+    mpz_set_str( q, arg.c_str(), (int)base);
+
+	if ( mpz_sizeinbase(q,2) > size)
+		return false;
+
+	return true;
+}
+
+ std::string ConvertTo( const std::string& arg, EBase ibase, EBase obase)
+{
+    mpz_t q;
+    mpz_init( q);
+    mpz_set_str( q,  arg.c_str(), (int)ibase);
+	std::string rstr = mpzToString( q, obase);
+	mpz_clear( q);
+
+	return rstr;
+}
+
+
+ mp_bitcnt_t ToUnsigned( std::string& rstr,  const std::string& arg, EBase base)
+{
+	const int MIN_LENGTH = 16;
+
+    mpz_t q, r;
+	mpz_t mask;
+	mpz_init( mask);
+    mpz_init( q);
+    mpz_init( r);
+    mpz_set_str( q,  arg.c_str(), (int)base);
+
+	size_t bitq = mpz_sizeinbase(q, 2);
+	mp_bitcnt_t sizebit = static_cast<mp_bitcnt_t>( (bitq / MIN_LENGTH + 1) * MIN_LENGTH );
+
+	if ( mpz_sgn( q) < 0 )
+	{
+		for ( mp_bitcnt_t i=0; i<sizebit; ++i)
+			mpz_setbit( mask, i);
+
+		mpz_neg( q, q);
+		mpz_xor( r, q, mask);
+		mpz_add_ui( q, r, 1);
+		
+
+		rstr = mpzToString( q, base);
+	}
+	else
+	{
+		//mpz_setbit( q, sizebit);
+		rstr = mpzToString( q, base);
+		//rstr.remove(0, 1); 
+	}
+
+	mpz_clear( mask);
+	mpz_clear( q);
+	mpz_clear( r);
+
+	return sizebit/8;
+}
+
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -236,16 +321,16 @@ std::string	EvaluateOne( const std::string& a, EOperator opr, EBase base)
 
 	};
 
-	size_t n = mpz_sizeinbase( tc, (int)base ) + 2;
-	char *ptab = new char[n];
-	mpz_get_str( ptab, -(int)base, tc);
-	std::string res( ptab);
-	delete [] ptab;
+	std::string res = mpzToString( tc, base);
+
+    mpz_clear(ta);
+    mpz_clear(tc);
 
 	return res;
 }
 
-inline std::string EvaluateTwo( const std::string& al, const std::string& ar, EOperator op, EBase base=EBase::HEX)
+//std::string EvaluateTwo( const std::string& al, const std::string& ar, EOperator op, EBase base=EBase::HEX)
+std::string EvaluateTwo( const std::string& al, const std::string& ar, EOperator op, EBase base)
 {
 	//EBase base = EBase::HEX;
 
@@ -322,12 +407,7 @@ inline std::string EvaluateTwo( const std::string& al, const std::string& ar, EO
 		}
 	};
 
-	
-	size_t n = mpz_sizeinbase( tc, (int)base ) + 2;
-	char *ptab = new char[n];
-	mpz_get_str( ptab, -(int)base, tc);
-	std::string res( ptab);
-	delete [] ptab;
+	std::string res = mpzToString( tc, base);
 
     mpz_clear(ta);
     mpz_clear(tb);

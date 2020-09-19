@@ -15,7 +15,7 @@ public:
     explicit Display(QWidget *parent = nullptr);
 
 	const std::string&	getCurArg() const	    { return curArgument; }
-    EBase               getBase() const         { return calcBase; }
+    EBase               getBase() const         { return curBase; }
 
     void    setMainValue( const std::string& res)
     {
@@ -38,10 +38,7 @@ public:
     void    update();
 
     void    inputDigit( char c);
-    void    startCurArg()           { bStart = true; bEnd = false; }
-    void    endCurArg()             { bEnd = true; }
-
-    bool    isEndCurArg() const    { return bEnd; }
+    void    resetCurArg()           { bresetArg = true;}
 
 signals:
     void baseChanged(EBase base);
@@ -59,13 +56,13 @@ private:
 
     QTextCharFormat fmtDefault;
 
-    bool    bStart;
-    bool    bEnd;
-    EBase   calcBase;
+    bool    bresetArg;
 
     bool    bAsUnsigned;
     size_t  curSize;
-    size_t  argSizeLimit;   //??????????????
+    //size_t  argSizeLimit;   //??????????????
+
+    EBase   curBase;
 
     std::string	curArgument;
     std::string curExpr;

@@ -11,9 +11,9 @@
 class Calc
 {
 public:
-	Calc() : mbase(EBase::HEX), mbraLevel(0), mstr(""), mbend(false)		{}
+	Calc();
 
-	void		reset()							{ mExpr.Reset(); mstr = ""; }
+	void		reset();
     EBase       getBase() const					{ return mbase; }
 	int			getBraLevel() const				{ return mbraLevel; }
 
@@ -21,8 +21,6 @@ public:
 
 	void	pushArgOper( const std::string& arg, EOperator opr, EBase base);
 	void	pushOper( EOperator opr, EBase base);
-	//void	pushOperator( const QString& arg);
-
 
 	void	StartSubExpr();
 	void	FinishSubExpr( std::string arg, EBase base);
@@ -30,14 +28,18 @@ public:
 	std::string	Evaluate();
 	std::string	EvaluateInPlace( const std::string& a, EOperator opr, EBase base);
 
-	//QString	EvaluateSingle( const QString& a, EOperator opr, const QString& b );
+private:
+	void	resetCond();
 
 private:
 	EBase			mbase;
 	int				mbraLevel;
 
-	bool			mbend;
-	std::string		mstr;
+	bool			mbreset;
+
+	std::string		mstrEval;	// expr for eval
+	std::string		mstrShow;	// expr for show
+	std::string		mstrArg;	// inplace arg for show
 
 	Expression		mExpr;
 };

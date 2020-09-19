@@ -166,7 +166,7 @@ void    QCalcWidget::on_clear()
 
 void    QCalcWidget::on_startSExpr()
 {
-    if ( mIMode == EInputMode::OPERATOR )
+    if ( mIMode == EInputMode::RIGHT_BRACKET || mIMode == EInputMode::MID_ARGUMENT)
         return;
 
     calc.StartSubExpr();
@@ -184,13 +184,13 @@ void    QCalcWidget::on_closeSExpr()
     if ( calc.getBraLevel() <= 0 )
         return;
 
-    if ( mIMode == EInputMode::ARGUMENT &&  ui.display->getCurArg() == "" )
+    if ( mIMode == EInputMode::ARGUMENT )
         return;
 
 
     std::string sarg = ui.display->getCurArg();
 
-    if ( mIMode == EInputMode::OPERATOR )
+    if ( mIMode == EInputMode::RIGHT_BRACKET )
         sarg = "";
 
     calc.FinishSubExpr( sarg, ui.display->getBase() );
@@ -204,23 +204,16 @@ void    QCalcWidget::on_closeSExpr()
     else
         ui.display->setStatusLabel( std::string("( level ") + std::to_string( calc.getBraLevel()));
 
-    //ui.display->update();
+    ui.display->resetCurArg();
 
-    ui.display->startCurArg();
-
-    mIMode = EInputMode::OPERATOR;
+    mIMode = EInputMode::RIGHT_BRACKET;
 }
 
 void    QCalcWidget::on_equal()
 {
     inputOperator( EOperator::EVAL);
-    //calc.pushArgOper( ui.display->getCurArg(), EOperator::EVAL, ui.display->getBase() );
-    //std::string sexpr = calc.getExpresion( ui.display->getBase() );
 
     std::string res = calc.Evaluate();
-
-    ////ui.display->setExpresion( sexpr + ui.display->getCurArg() + QString( " =" ) );
-    //ui.display->setExpresion( sexpr );
 
     if ( res != "" )
         ui.display->setMainValue( ConvertTo( res, calc.getBase(), ui.display->getBase()) );
@@ -243,22 +236,26 @@ void    QCalcWidget::keyPressEvent(QKeyEvent *event)
 
 void    QCalcWidget::inputDigit( char c)
 {
-    if (mIMode == EInputMode::ARGUMENT )
+    if (mIMode == EInputMode::ARGUMENT || mIMode == EInputMode::MID_ARGUMENT)
+    {
         ui.display->inputDigit( c);
+        mIMode = EInputMode::MID_ARGUMENT;
+    }
 }
 
 void    QCalcWidget::inputOperator( EOperator opr)
 {
-    if ( mIMode == EInputMode::OPERATOR )
+    if ( mIMode == EInputMode::RIGHT_BRACKET )
     {
         calc.pushOper( opr, ui.display->getBase() );
-        mIMode = EInputMode::ARGUMENT;
     }
     else
     {
         calc.pushArgOper( ui.display->getCurArg(), opr, ui.display->getBase() );
-        ui.display->startCurArg();
+        ui.display->resetCurArg();
     }
+
+    mIMode = EInputMode::ARGUMENT;
 
     // !!! expresion
     std::string sexpr = calc.getExpresion( ui.display->getBase() );
@@ -274,5 +271,5 @@ void    QCalcWidget::inputOperatorInPlace( EOperator opr)
     sarg = calc.EvaluateInPlace( sarg, opr, ui.display->getBase() );
 
     ui.display->setMainValue( sarg);
-    ui.display->startCurArg();
+    ui.display->resetCurArg();
 }

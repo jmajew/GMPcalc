@@ -24,7 +24,7 @@ Display::Display(QWidget *parent) : QWidget(parent)
 {
     bAsUnsigned = false;
     curSize = 0;
-    argSizeLimit = 0;
+    //argSizeLimit = 0;
 
     ui.setupUi(this);
 
@@ -36,12 +36,12 @@ Display::Display(QWidget *parent) : QWidget(parent)
 
     //connect( this, &Display::baseChanged, ui.textEdit_Display,  &MultiDisplay::on_baseChanged ); 
 
+    ui.pushButton_Unsigned->setText( "as signed");
     ui.labelSize->setText("");
 
     ui.radioButton_Dec->setChecked(true);
-    calcBase = EBase::DEC;
-    bStart = true;
-    bEnd = false;
+    curBase = EBase::DEC;
+    bresetArg = true;
 
     curExpr = "";
 	curArgument = "0";
@@ -62,9 +62,15 @@ void    Display::on_asUnsigned( bool b)
     bAsUnsigned = b;
     update();
     if ( bAsUnsigned )
+    {
         ui.labelSize->setText(QString(" ") + QString::number(curSize) + QString(" B") );
+        ui.pushButton_Unsigned->setText( "as unsigned");
+    }
     else
+    {
         ui.labelSize->setText("");
+        ui.pushButton_Unsigned->setText( "as signed");
+    }
 
 }
 
@@ -91,19 +97,19 @@ void    Display::setBase( EBase base, bool check)
     if ( check )
     {
         //update curExpr
-        curArgument = ConvertTo( curArgument, calcBase, base);
-        calcBase = base;
+        curArgument = ConvertTo( curArgument, curBase, base);
+        curBase = base;
 
         update();
         
-        emit baseChanged( calcBase);
+        emit baseChanged( curBase);
     }
 }
 
 void    Display::update()
 {
     ui.textEdit_Display->setAlignment( Qt::AlignRight);
-    //ui.textEdit_Display->setText( convertArgToDisplay( curArgument, calcBase) );
+    //ui.textEdit_Display->setText( convertArgToDisplay( curArgument, curBase) );
 
     ui.textEdit_Display->setText( QString(curExpr.c_str()) );
     ui.textEdit_Display->append( "");
@@ -111,31 +117,60 @@ void    Display::update()
     ui.textEdit_Display->setFontPointSize(18);
     ui.textEdit_Display->setAlignment( Qt::AlignRight);
 
+    std::string qstr; 
+    //std::string sarg_bin, sarg_dec, sarg_hex;
+
     if ( bAsUnsigned)
     {
-        std::string qstr; 
-        curSize = ToUnsigned( qstr, curArgument, calcBase);
-        ui.textEdit_Display->append( convertArgToDisplay( qstr, calcBase));
-        ui.labelSize->setText(QString(" ") + QString::number(curSize) + QString(" B") );
+        curSize = ToUnsigned( qstr, curArgument, curBase);
+        ui.labelSize->setText(QString(" ") + QString::number(curSize) + QString(" Byte") );
 
     }
     else
     {
-        ui.textEdit_Display->append( convertArgToDisplay( curArgument, calcBase));
+        qstr = curArgument;
         ui.labelSize->setText("");
     }
+
+    ui.textEdit_Display->append( convertArgToDisplay( qstr, curBase));
 
     QTextCursor cur = ui.textEdit_Display->textCursor();
     cur.setCharFormat( fmtDefault);
     ui.textEdit_Display->setTextCursor( cur);
 
-    std::string sarg_bin = ConvertTo( curArgument, calcBase, EBase::BIN);
-    std::string sarg_dec = ConvertTo( curArgument, calcBase, EBase::DEC);
-    std::string sarg_hex = ConvertTo( curArgument, calcBase, EBase::HEX);
+    std::string sarg_bin = ConvertTo( qstr, curBase, EBase::BIN);
+    std::string sarg_dec = ConvertTo( qstr, curBase, EBase::DEC);
+    std::string sarg_hex = ConvertTo( qstr, curBase, EBase::HEX);
 
     ui.lineEdit_DispBin->setText( convertArgToDisplay( sarg_bin, EBase::BIN) );
     ui.lineEdit_DispDec->setText( convertArgToDisplay( sarg_dec, EBase::DEC) );
     ui.lineEdit_DispHex->setText( convertArgToDisplay( sarg_hex, EBase::HEX) );
+
+    //if ( bAsUnsigned)
+    //{
+    //    std::string qstr; 
+    //    curSize = ToUnsigned( qstr, curArgument, curBase);
+    //    ui.textEdit_Display->append( convertArgToDisplay( qstr, curBase));
+    //    ui.labelSize->setText(QString(" ") + QString::number(curSize) + QString(" B") );
+
+    //}
+    //else
+    //{
+    //    ui.textEdit_Display->append( convertArgToDisplay( curArgument, curBase));
+    //    ui.labelSize->setText("");
+    //}
+
+    //QTextCursor cur = ui.textEdit_Display->textCursor();
+    //cur.setCharFormat( fmtDefault);
+    //ui.textEdit_Display->setTextCursor( cur);
+
+    //std::string sarg_bin = ConvertTo( curArgument, curBase, EBase::BIN);
+    //std::string sarg_dec = ConvertTo( curArgument, curBase, EBase::DEC);
+    //std::string sarg_hex = ConvertTo( curArgument, curBase, EBase::HEX);
+
+    //ui.lineEdit_DispBin->setText( convertArgToDisplay( sarg_bin, EBase::BIN) );
+    //ui.lineEdit_DispDec->setText( convertArgToDisplay( sarg_dec, EBase::DEC) );
+    //ui.lineEdit_DispHex->setText( convertArgToDisplay( sarg_hex, EBase::HEX) );
 
 }
 
@@ -143,10 +178,10 @@ void    Display::update()
 void    Display::inputDigit( char c)
 {
     std::string sarg;
-    if( bStart)
+    if( bresetArg)
     {
         sarg = "";
-        bStart = false;
+        bresetArg = false;
     }
     else
     {
@@ -157,7 +192,7 @@ void    Display::inputDigit( char c)
 
     //if ( argSizeLimit > 0 )
     //{
-    //    if ( TestSize( sarg + c, argSizeLimit, calcBase ) )
+    //    if ( TestSize( sarg + c, argSizeLimit, curBase ) )
     //        sarg += c;
     //}
     //else
@@ -166,6 +201,6 @@ void    Display::inputDigit( char c)
     }
 
     //curExpr += c;
-    curArgument = ConvertTo( sarg, calcBase, calcBase);
+    curArgument = ConvertTo( sarg, curBase, curBase);
     update();
 }

@@ -11,9 +11,10 @@ enum class EInputMode
 {
     UNKNOWN = 0,
     ARGUMENT,
+    MID_ARGUMENT,
     OPERATOR,
-    BEG_SUBEXPR,
-    END_SUBEXPR
+    LEFT_BRACKET,
+    RIGHT_BRACKET
 };
 
 class QCalcWidget : public QWidget
