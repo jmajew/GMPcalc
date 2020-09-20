@@ -118,6 +118,9 @@ std::string OperToString( EOperator opr)
 	case EOperator::EVAL:
 		return std::string( " = " );
 
+	case EOperator::CHSIGN:
+		return std::string( "negate" );
+
 	case EOperator::SQR:
 		return std::string( "sqr" );
 
@@ -318,6 +321,16 @@ std::string	EvaluateOne( const std::string& a, EOperator opr, EBase base)
 
 			break;
 		}
+	case EOperator::NOT:
+		{
+			mp_bitcnt_t nbit = mpz_sizeinbase(ta, 2);
+			mpz_set_ui( tc, 0);
+			mpz_setbit( tc, nbit);
+			mpz_sub_ui( tc, tc, 1);	
+			mpz_xor( tc, ta, tc);
+
+			break;
+		}
 
 	};
 
@@ -386,7 +399,12 @@ std::string EvaluateTwo( const std::string& al, const std::string& ar, EOperator
 	case EOperator::NAND:
 		{
 			mpz_and( tc, ta, tb);
-			mpz_com( tc, tc);
+
+			mp_bitcnt_t nbit = mpz_sizeinbase(tc, 2);
+			mpz_set_ui( tb, 0);
+			mpz_setbit( tb, nbit);
+			mpz_sub_ui( tb, tb, 1);	
+			mpz_xor( tc, tc, tb);
 			break;
 		}
 	case EOperator::OR:
@@ -402,7 +420,12 @@ std::string EvaluateTwo( const std::string& al, const std::string& ar, EOperator
 	case EOperator::NOR:
 		{
 			mpz_ior( tc, ta, tb);
-			mpz_com( tc, tc);
+
+			mp_bitcnt_t nbit = mpz_sizeinbase(tc, 2);
+			mpz_set_ui( tb, 0);
+			mpz_setbit( tb, nbit);
+			mpz_sub_ui( tb, tb, 1);	
+			mpz_xor( tc, tc, tb);
 			break;
 		}
 	};

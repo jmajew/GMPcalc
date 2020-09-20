@@ -197,7 +197,7 @@ void    QCalcWidget::on_closeSExpr()
 
     // !!! expresion
     ui.display->setExpresion( calc.getExpresion( ui.display->getBase() ) );
-    ui.display->setMainValue( "");
+    //ui.display->setMainValue( "");
 
     if ( calc.getBraLevel() <= 0 )
         ui.display->setStatusLabel( "");
